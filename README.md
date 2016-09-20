@@ -8,10 +8,14 @@ The script uses sys.sql_logins to check SQL Server logins with PASSWORD EQUAL to
 
 Brain dump ... Road Map:
 Use T-SQL Scripts to audit the security of:
-  SQL Server Logins
-  SQL Users
-  SQL Databases
-  SQL Jobs
+
+SQL Server Logins
+
+SQL Users
+
+SQL Databases
+
+SQL Jobs
 
 Bring scripts together to provide a uniform output with appropriate links for additional information.
 Build SSRS report over the top to allow scheduled reporting and auiditing.
