@@ -1,15 +1,35 @@
 /* Check SQL Logins for basic security measures */
 
+--ensure we're clear
+	IF OBJECT_ID('tempdb..#AuditResults') IS NOT NULL
+	BEGIN
+		DROP TABLE #AuditResults
+	END
 
-WITH SQLLoginChecks
+--Create results table
+CREATE TABLE #AuditResults
+							(	
+									ServerName sysname
+								,	InstanceName sysname
+								,	LoginName sysname
+								,	Issue varchar(200)
+								,	Importance int
+							);
+
+
+--sql_logins check https://msdn.microsoft.com/en-us/library/ms174355.aspx
+--sys.server_principals https://msdn.microsoft.com/en-us/library/ms188786.aspx
+
+WITH SQLLoginChecks 
 AS
 (
-	SELECT	SERVERPROPERTY('machinename') AS 'ServerName'
-		,	ISNULL(SERVERPROPERTY('instancename'), SERVERPROPERTY('machinename')) AS 'InstanceName'
+
+	SELECT	CAST(SERVERPROPERTY('machinename')as sysname) AS 'ServerName'
+		,	CAST(ISNULL(SERVERPROPERTY('instancename'), SERVERPROPERTY('machinename'))as sysname) AS 'InstanceName'
 		,	name AS LoginName
 		,	PWDCOMPARE(name, password_hash) AS PasswordEqualsName
 		,	is_policy_checked
-		,	is_expiration_checked
+		,	is_expiration_checked 
 	FROM	master.sys.sql_logins
 	WHERE	PWDCOMPARE(name, password_hash) = 1
 			OR
@@ -18,8 +38,9 @@ AS
 			is_expiration_checked = 0
 )
 
-	SELECT  ServerName
-		,	InstanceName
+	INSERT INTO #AuditResults
+	SELECT  CAST(ServerName as sysname) AS ServerName
+		,	CAST(InstanceName as sysname) AS InstanceName
 		,	LoginName
 		,	CASE
 				WHEN PasswordEqualsName = 1 AND is_policy_checked = 0 AND is_expiration_checked = 0 
@@ -46,10 +67,46 @@ AS
 				WHEN is_policy_checked = 0 THEN 1000
 				WHEN is_expiration_checked = 0 THEN 500
 			END As Importance
+				
 		--,	PasswordEqualsName
 		--,	is_policy_checked
 		--,	is_expiration_checked
-	FROM SQLLoginChecks
+	FROM #SQLLoginChecks
+	ORDER BY Importance DESC;
+
+	/*
+	SELECT *
+	FROM #AuditResults
+	*/
+
+/*
+--check for sysadmins
+https://msdn.microsoft.com/en-us/library/ms188772.aspx
+*/
+	IF OBJECT_ID('tempdb..#SysAdmins') IS NOT NULL
+	BEGIN
+		DROP TABLE #SysAdmins
+	END
+
+	CREATE TABLE #SysAdmins (
+									ServerRole SYSNAME
+								,	MemberName SYSNAME
+								,	MemberSID VARBINARY(85)
+							)
+
+	INSERT INTO #SysAdmins
+	EXEC sp_helpsrvrolemember 'sysadmin'
+
+	INSERT INTO #AuditResults
+	SELECT		CAST(SERVERPROPERTY('machinename')as sysname) AS 'ServerName'
+			,	CAST(ISNULL(SERVERPROPERTY('instancename'), SERVERPROPERTY('machinename'))as sysname) AS 'InstanceName'
+			,	MemberName AS	LoginName 
+			,	'The user is a member of the sysadmins role, this user can do anything.' AS	Issue 
+			,	400 AS	Importance 
+	FROM #SysAdmins
 	ORDER BY Importance DESC;
 
 
+	SELECT *
+	FROM #AuditResults
+	ORDER BY Importance DESC;
