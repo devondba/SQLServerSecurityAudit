@@ -110,3 +110,25 @@ https://msdn.microsoft.com/en-us/library/ms188772.aspx
 	SELECT *
 	FROM #AuditResults
 	ORDER BY Importance DESC;
+
+
+/*
+Check for default service accont
+*/
+
+	SELECT	servicename
+		,	startup_type_desc
+		,	service_account
+	FROM	sys.dm_server_services
+	WHERE	
+			(
+				servicename = 'SQL Server (MSSQLSERVER)'
+				AND
+				service_account = 'NT Service\MSSQLSERVER'
+			)
+			OR
+			(
+				servicename = 'SQL Server Agent (MSSQLSERVER)'
+				AND
+				service_account = 'NT Service\SQLSERVERAGENT'
+			)
