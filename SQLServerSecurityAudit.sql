@@ -248,35 +248,3 @@ Check for default service account
 	SELECT *
 	FROM #AuditResults
 	ORDER BY Importance DESC;
-
-
-
-
-/*
-
---Elevated Permissions on a Database
-
-	--need to execute against each database
-	SELECT DISTINCT
-			DB_NAME()
-		,	'Elevated Permissions'
-		,	'In ' + DB_NAME() + ', user ' + u.NAME + '  has the role ' + g.NAME
-		,	'This user has more rights than just data access.'
-		,'db_owner'
-		,'db_accessAdmin'
-		,'db_securityadmin'
-		,'db_ddladmin'
-	FROM	dbo.sysmembers m
-			INNER JOIN dbo.sysusers u
-			ON m.memberuid = u.uid
-			INNER JOIN sysusers g
-			ON m.groupuid = g.uid
-	WHERE	u.NAME <> 'dbo'
-			AND g.NAME IN (
-							'db_owner'
-							,'db_accessAdmin'
-							,'db_securityadmin'
-							,'db_ddladmin'
-							);
-
-*/
